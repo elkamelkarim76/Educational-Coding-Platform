@@ -17,8 +17,7 @@
             [(ngModel)]="description"></textarea>
         </div>
 
-        <div class="flex-[4_1] min-h-0 overflow-hidden" >
-            <!--Input(language, isTeacher) and output-->
+        <div class="flex-[4_1] min-h-0 overflow-hidden">
             <app-editor 
                 [options]="options"
                 [inputFiles]="files"
@@ -28,69 +27,86 @@
             ></app-editor>
         </div>
 
-
-    <div class="flex-[2_1] min-h-0 flex flex-col overflow-hidden rounded-xl" >      
-        <div class="flex border-t-xl  bg-gray-800">
-        
-            <button 
-                (click)="setActiveTab('console')"
-                class="flex-1 py-2 text-sm font-semibold"
-                [class.border-white]="activeTab === 'console'"
-                [class.text-white]="activeTab === 'console'"
-                [class.border-transparent]="activeTab !== 'console'"
-                [class.text-gray-400]="activeTab !== 'console'"
-            >
-                Console
-            </button>
-
-            <button 
-                (click)="setActiveTab('tests')"
-                class="flex-1 py-2 text-sm font-semibold"
-                [class.border-white]="activeTab === 'tests'"
-                [class.text-white]="activeTab === 'tests'"
-                [class.border-transparent]="activeTab !== 'tests'"
-                [class.text-gray-400]="activeTab !== 'tests'"            
-            >
-                Tests
-            </button>
-
-            <button 
-                (click)="setActiveTab('hints')"
-                class="flex-1 py-2 text-sm font-semibold "
-                [class.border-white]="activeTab === 'hints'"
-                [class.text-white]="activeTab === 'hints'"
-                [class.border-transparent]="activeTab !== 'hints'"
-                [class.text-gray-400]="activeTab !== 'hints'"
-            >
-                Indices
-            </button>
-        </div>  
-
-        <div class="flex-1 min-h-0 overflow-auto relative">
-
-        @switch (activeTab) {
+        <div class="flex-[2_1] min-h-0 flex flex-col overflow-hidden rounded-xl">      
+            <div class="flex border-t-xl bg-gray-800">
             
-            @case ('console') {
-                <app-console 
-                    [text]="consoleText"
-                ></app-console>
-            }
+                <button 
+                    (click)="setActiveTab('console')"
+                    class="flex-1 py-2 text-sm font-semibold"
+                    [class.border-white]="activeTab === 'console'"
+                    [class.text-white]="activeTab === 'console'"
+                    [class.border-transparent]="activeTab !== 'console'"
+                    [class.text-gray-400]="activeTab !== 'console'"
+                >
+                    Console
+                </button>
 
-            @case ('tests') {
-                <app-tests-display
-                    [testsDisplay]="tests"
-                ></app-tests-display>
-            }
+                <button 
+                    (click)="setActiveTab('tests')"
+                    class="flex-1 py-2 text-sm font-semibold"
+                    [class.border-white]="activeTab === 'tests'"
+                    [class.text-white]="activeTab === 'tests'"
+                    [class.border-transparent]="activeTab !== 'tests'"
+                    [class.text-gray-400]="activeTab !== 'tests'"            
+                >
+                    Tests
+                </button>
 
-            @case ('hints') {
-                <app-hints-display
-                    [hints]="hints"
-                    [attemptsCount]="attemptsCount">
-                </app-hints-display>
-            }
-        }
+                <button 
+                    (click)="setActiveTab('hints')"
+                    class="flex-1 py-2 text-sm font-semibold"
+                    [class.border-white]="activeTab === 'hints'"
+                    [class.text-white]="activeTab === 'hints'"
+                    [class.border-transparent]="activeTab !== 'hints'"
+                    [class.text-gray-400]="activeTab !== 'hints'"
+                >
+                    Indices
+                </button>
 
+                <button 
+                    (click)="setActiveTab('chat')"
+                    class="flex-1 py-2 text-sm font-semibold"
+                    [class.border-white]="activeTab === 'chat'"
+                    [class.text-white]="activeTab === 'chat'"
+                    [class.border-transparent]="activeTab !== 'chat'"
+                    [class.text-gray-400]="activeTab !== 'chat'"
+                >
+                    💬 Chat
+                </button>
+            </div>  
+
+            <div class="flex-1 min-h-0 overflow-auto relative">
+
+                @switch (activeTab) {
+                    
+                    @case ('console') {
+                        <app-console 
+                            [text]="consoleText"
+                        ></app-console>
+                    }
+
+                    @case ('tests') {
+                        <app-tests-display
+                            [testsDisplay]="tests"
+                        ></app-tests-display>
+                    }
+
+                    @case ('hints') {
+                        <app-hints-display
+                            [hints]="hints"
+                            [attemptsCount]="attemptsCount">
+                        </app-hints-display>
+                    }
+
+                    @case ('chat') {
+                        <app-chat
+                            [exerciseId]="exerciseId"
+                            [userId]="1">
+                        </app-chat>
+                    }
+                }
+
+            </div>
+        </div>
     </div>
-
-
 </div>
