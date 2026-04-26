@@ -4,7 +4,7 @@ TAI Backend API - Programming Learning Platform
 This module defines all FastAPI routes for the TAI platform where teachers
 create coding exercises and students submit solutions for automated testing.
 """
-
+from app.services.analytics import get_exercise_analytics
 from fastapi import FastAPI, Depends, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -73,6 +73,10 @@ def delete_unit_endpoint(unit_id: int, db: Session = Depends(get_db)):
     delete_unit(unit_id, db)
     return None
 
+@app.get("/analytics/exercises")
+def get_analytics_endpoint(db: Session = Depends(get_db)):
+    """Retourne les vraies stats agrégées par exercice."""
+    return get_exercise_analytics(db)
 
 # Endpoints related to a course 
 

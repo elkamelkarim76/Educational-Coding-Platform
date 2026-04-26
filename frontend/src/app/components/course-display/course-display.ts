@@ -1,12 +1,13 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { CourseNav, CourseUpdatePayload } from '../../models/exercise.models';
 import { validateEntityForm } from '../../utils/utils';
 
 @Component({
   selector: 'app-course-display',
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, ReactiveFormsModule, CommonModule],
   templateUrl: './course-display.html',
   styleUrl: './course-display.css',
 })
