@@ -324,8 +324,12 @@ def grade_submission(
     return global_success, test_responses_list
 
 # Main Student Submission Handler
-
-async def test_student_code(db: Session, exercise_id: int, payload: StudentSubmissionPayload) -> dict:
+async def test_student_code(
+    db: Session,
+    exercise_id: int,
+    payload: StudentSubmissionPayload,
+    user_id: int
+) -> dict:
     """
     Process and grade a student's code submission.
 
@@ -345,7 +349,7 @@ async def test_student_code(db: Session, exercise_id: int, payload: StudentSubmi
 
     try:
         # Initialize submission record
-        submission = initialize_submission_history(db, payload.user_id, exercise_id)
+        submission = initialize_submission_history(db, user_id, exercise_id)
         submission_id = submission.id
 
         #  Parse student solutions and save to database
@@ -391,7 +395,7 @@ async def test_student_code(db: Session, exercise_id: int, payload: StudentSubmi
         submission.status = SubmissionStatus.SUCCESS if global_success else SubmissionStatus.FAILURE
 
         # Update student progress
-        update_student_progress(db, payload.user_id, exercise_id, global_success)
+        update_student_progress(db, user_id, exercise_id, global_success)
 
         # Commit all changes
         db.commit()

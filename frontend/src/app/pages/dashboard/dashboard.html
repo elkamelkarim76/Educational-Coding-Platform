@@ -1,115 +1,167 @@
 <div class="min-h-screen w-full bg-gray-800 p-8 text-white">
   <div class="mx-auto">
 
-    <h1 class="text-3xl font-bold mb-8">Tableau de bord </h1>
+    <!-- header + infos user + logout -->
+    <div class="flex items-center justify-between mb-8">
+
+      <h1 class="text-3xl font-bold">Tableau de bord</h1>
+
+      <div class="flex items-center gap-4">
+
+        <!-- infos user connecté -->
+        <div class="text-right text-sm text-gray-300">
+          <div>{{ currentUserName }}</div>
+          <div class="text-xs text-gray-400">
+            {{ currentUserRole === 'teacher' ? 'Professeur' : 'Étudiant' }}
+          </div>
+        </div>
+
+        <!-- logout -->
+        <button
+          type="button"
+          (click)="logout()"
+          class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold cursor-pointer">
+          Se déconnecter
+        </button>
+
+      </div>
+    </div>
 
     @if (isLoading) {
+      <!-- skeleton loading -->
       <div class="flex flex-col items-center justify-center mt-20 animate-pulse space-y-4">
         <div class="h-32 w-full max-w-4xl bg-gray-700 rounded-2xl"></div>
         <div class="h-20 w-full max-w-4xl bg-gray-700 rounded-xl"></div>
       </div>
     } @else {
 
-    <div class="flex overflow-x-auto gap-6 mb-8 pb-4">
+      <!-- liste des modules -->
+      <div class="flex overflow-x-auto gap-6 mb-8 pb-4">
   
-      @for (unit of units; track unit.id) {
-        <div class="flex-none w-80 md:w-96 bg-gray-900 rounded-xl border border-gray-300 overflow-hidden">
+        @for (unit of units; track unit.id) {
 
-          <a [routerLink]="['/unit', unit.id]" class="block p-5">
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="text-lg font-bold text-white truncate">{{ unit.name }}</h2>
-              <span class="text-xs font-medium text-gray-300 border border-gray-500 rounded px-2 py-0.5">
-                Niv {{ unit.difficulty }}
-              </span>
-            </div>
+          <div class="flex-none w-80 md:w-96 bg-gray-900 rounded-xl border border-gray-300 overflow-hidden">
 
-            <p class="text-gray-300 text-sm line-clamp-2 mb-3 whitespace-normal">
-              {{ unit.description || 'Pas de description' }}
-            </p>
+            <a [routerLink]="['/unit', unit.id]" class="block p-5">
 
-            <div class="flex items-center gap-2">
-              <span class="text-xs px-2 py-1 rounded"
-                    [class]="unit.visibility === 'public' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'">
-                {{ unit.visibility === 'public' ? 'Public' : 'Privé' }}
-              </span>
-            </div>
-          </a>
+              <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-bold text-white truncate">{{ unit.name }}</h2>
 
-          <div class="px-5 pb-3 flex justify-end">
-            <button (click)="handleDeleteUnit(unit.id)"
-                    class="p-2 rounded text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
-                    title="Supprimer le module">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      } @empty {
-        <div class="w-full text-center py-12 text-gray-300">
-          Aucun module disponible. Creez votre premier module ci-dessous.
-        </div>
-      }
-    </div>
-
-      @if (!isAddingUnit) {
-        <button (click)="startAddingUnit()"
-                class="w-full py-4 rounded-xl border-2 border-dashed border-gray-300 text-gray-300 hover:bg-gray-700/50 flex items-center justify-center gap-2 font-bold cursor-pointer">
-          <span class="text-xl">+</span>
-          <span>Ajouter un module</span>
-        </button>
-
-      } @else {
-        <div class="bg-gray-900 rounded-xl border border-gray-300 overflow-hidden shadow-2xl">
-          <div class="flex flex-col md:flex-row md:items-start gap-4 p-5 border-b border-gray-300">
-            <input type="text" [(ngModel)]="newUnit.name"
-                   placeholder="Nom du module..."
-                   class="bg-transparent text-lg font-bold text-white placeholder-gray-300 focus:outline-none border-b border-transparent focus:border-white w-full md:w-1/4"
-                       autoFocus>
-
-            <div class="hidden md:block h-8 w-px bg-gray-300 mt-1"></div>
-
-            <textarea [(ngModel)]="newUnit.description"
-                      placeholder="Description du module..."
-                      rows="2"
-                      class="flex-1 bg-transparent text-sm text-gray-300 focus:outline-none border border-transparent focus:border-gray-300 rounded p-1 resize-none"></textarea>
-          </div>
-
-          @if (errorMessage) {
-            <div class="px-5 py-2 text-red-400 text-sm font-bold bg-red-900/20 border-t border-red-900/50">
-              {{ errorMessage }}
-            </div>
-          }
-
-          <div class="p-3 bg-gray-800 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-              <div class="flex items-center gap-2 bg-gray-900 border border-gray-300 rounded px-2 py-1">
-                <span class="text-xs font-medium text-gray-400 whitespace-nowrap">Niv</span>
-                <input type="number" min="1" max="5" [(ngModel)]="newUnit.difficulty"
-                       class="bg-transparent text-white w-8 text-center focus:outline-none font-bold text-xs">
+                <span class="text-xs font-medium text-gray-300 border border-gray-500 rounded px-2 py-0.5">
+                  Niv {{ unit.difficulty }}
+                </span>
               </div>
 
-              <select [(ngModel)]="newUnit.visibility"
-                      class="bg-gray-900 border border-gray-300 text-gray-300 text-xs rounded px-2 py-1 focus:outline-none cursor-pointer">
-                <option value="public">Public</option>
-                <option value="private">Privé</option>
-              </select>
+              <p class="text-gray-300 text-sm line-clamp-2 mb-3 whitespace-normal">
+                {{ unit.description || 'Pas de description' }}
+              </p>
+
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-2 py-1 rounded"
+                      [class]="unit.visibility === 'public' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'">
+                  {{ unit.visibility === 'public' ? 'Public' : 'Privé' }}
+                </span>
+              </div>
+
+            </a>
+
+            <!-- delete unit : teacher only -->
+            @if (isTeacher) {
+              <div class="px-5 pb-3 flex justify-end">
+                <button (click)="handleDeleteUnit(unit.id)"
+                        class="p-2 rounded text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
+                        title="Supprimer le module">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                  </svg>
+                </button>
+              </div>
+            }
+
+          </div>
+
+        } @empty {
+          <div class="w-full text-center py-12 text-gray-300">
+            Aucun module disponible.
+          </div>
+        }
+
+      </div>
+
+      <!-- bouton ajouter module : teacher only -->
+      @if (isTeacher) {
+
+        @if (!isAddingUnit) {
+
+          <button (click)="startAddingUnit()"
+                  class="w-full py-4 rounded-xl border-2 border-dashed border-gray-300 text-gray-300 hover:bg-gray-700/50 flex items-center justify-center gap-2 font-bold cursor-pointer">
+            <span class="text-xl">+</span>
+            <span>Ajouter un module</span>
+          </button>
+
+        } @else {
+
+          <!-- form ajout module -->
+          <div class="bg-gray-900 rounded-xl border border-gray-300 overflow-hidden shadow-2xl">
+
+            <div class="flex flex-col md:flex-row md:items-start gap-4 p-5 border-b border-gray-300">
+
+              <input type="text" [(ngModel)]="newUnit.name"
+                     placeholder="Nom du module..."
+                     class="bg-transparent text-lg font-bold text-white placeholder-gray-300 focus:outline-none border-b border-transparent focus:border-white w-full md:w-1/4"
+                     autoFocus>
+
+              <div class="hidden md:block h-8 w-px bg-gray-300 mt-1"></div>
+
+              <textarea [(ngModel)]="newUnit.description"
+                        placeholder="Description du module..."
+                        rows="2"
+                        class="flex-1 bg-transparent text-sm text-gray-300 focus:outline-none border border-transparent focus:border-gray-300 rounded p-1 resize-none"></textarea>
             </div>
 
-            <div class="flex items-center gap-2">
-              <button (click)="cancelAdding()"
-                      class="px-4 py-1.5 rounded text-gray-300 text-sm font-medium cursor-pointer">
-                Annuler
-              </button>
-              <button (click)="submitUnit()"
-                      [disabled]="isCreating"
-                      class="px-4 py-1.5 bg-white text-gray-900 rounded font-bold text-sm disabled:opacity-50 cursor-pointer">
-                {{ isCreating ? 'Creation...' : 'Valider' }}
-              </button>
+            @if (errorMessage) {
+              <div class="px-5 py-2 text-red-400 text-sm font-bold bg-red-900/20 border-t border-red-900/50">
+                {{ errorMessage }}
+              </div>
+            }
+
+            <div class="p-3 bg-gray-800 flex items-center justify-between gap-3">
+
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 bg-gray-900 border border-gray-300 rounded px-2 py-1">
+                  <span class="text-xs text-gray-400">Niv</span>
+                  <input type="number" min="1" max="5" [(ngModel)]="newUnit.difficulty"
+                         class="bg-transparent text-white w-8 text-center focus:outline-none text-xs">
+                </div>
+
+                <select [(ngModel)]="newUnit.visibility"
+                        class="bg-gray-900 border border-gray-300 text-gray-300 text-xs rounded px-2 py-1 cursor-pointer">
+                  <option value="public">Public</option>
+                  <option value="private">Privé</option>
+                </select>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button (click)="cancelAdding()"
+                        class="px-4 py-1.5 text-gray-300 text-sm cursor-pointer">
+                  Annuler
+                </button>
+
+                <button (click)="submitUnit()"
+                        [disabled]="isCreating"
+                        class="px-4 py-1.5 bg-white text-gray-900 rounded font-bold text-sm disabled:opacity-50 cursor-pointer">
+                  {{ isCreating ? 'Creation...' : 'Valider' }}
+                </button>
+              </div>
+
             </div>
+
           </div>
-        </div>
+
+        }
+
       }
+
     }
   </div>
 </div>

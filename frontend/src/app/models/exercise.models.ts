@@ -172,7 +172,6 @@ export interface CourseCreatePayload {
   difficulty: number;
   visibility: string;
   unit_id: number;
-  author_id: number;
 }
 
 // Unit
@@ -182,7 +181,6 @@ export interface UnitCreatePayload {
   description: string;
   difficulty: number;
   visibility: string;
-  author_id: number;
 }
 
 export interface UnitUpdatePayload {

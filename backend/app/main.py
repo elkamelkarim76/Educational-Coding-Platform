@@ -1,44 +1,51 @@
 """
 TAI Backend API - Programming Learning Platform
-
-This module defines all FastAPI routes for the TAI platform where teachers
-create coding exercises and students submit solutions for automated testing.
 """
 
-from fastapi import FastAPI, Depends, Query, status
+from fastapi import FastAPI, Depends, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+from app.db.database import get_db
+from app.db.models import UserModel
+
 from app.schemas.schemas import (
+    RegisterRequest, LoginRequest, TokenResponse, CurrentUserResponse,
     ExerciseFullCreate, TestRunRequest, CompileRequest, StudentSubmissionPayload,
     CourseCreate, UnitCreate, UnitUpdate, CourseUpdate, Exercise
 )
-from app.services.create_exercise import create_exercise, get_exercise_for_update, update_exercise
+
+from app.core.security import hash_password, verify_password, create_access_token
+from app.core.dependencies import get_current_user, require_teacher
+
+from app.services.create_exercise import (
+    create_exercise,
+    get_exercise_for_update,
+    update_exercise
+)
+
 from app.services.compiler import compile_and_run_logic, compile_logic
 from app.services.exercise_run import get_exercise_for_student, test_student_code
 from app.services.info_navigation import get_all_units, get_unit_structure
+
 from app.services.unit_update import (
-    create_course, delete_course, delete_exercise,
-    create_unit, update_unit, delete_unit, update_course
-)
-from app.db.database import get_db
-
-# Create all the table if it's the first time c
-#models.Base.metadata.create_all(bind=engine) used before alembic, now it's alembic which will configure the db
-
-
-app = FastAPI(
-    title="TAI Programming Platform API",
-    description="Backend API for a programming learning platform where teachers create exercises and students submit solutions for automated testing.",
-    version="1.0.0"
+    create_course,
+    delete_course,
+    delete_exercise,
+    create_unit,
+    update_unit,
+    delete_unit,
+    update_course
 )
 
 
+app = FastAPI()
 
 
+# CORS (déjà existant)
 origins = [
-    "http://localhost:5173", 
-    "http://127.0.0.1:4200", 
+    "http://localhost:5173",
+    "http://127.0.0.1:4200",
     "http://localhost:4200"
 ]
 
@@ -51,148 +58,227 @@ app.add_middleware(
 )
 
 
-# Endpoints related to a unit 
+# =========================
+# AUTH
+# =========================
+
+@app.post("/register", response_model=CurrentUserResponse)
+def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+
+    existing_user = db.query(UserModel).filter(UserModel.email == payload.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already used")
+
+    # mot de passe hashé
+    new_user = UserModel(
+        firstname=payload.firstname,
+        lastname=payload.lastname,
+        email=payload.email,
+        mdp_hash=hash_password(payload.password),
+        role=payload.role,
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
+
+
+@app.post("/login", response_model=TokenResponse)
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+
+    user = db.query(UserModel).filter(UserModel.email == payload.email).first()
+
+    if user is None or not verify_password(payload.password, user.mdp_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    # création du token JWT
+    token = create_access_token(user.id, str(user.role))
+
+    return {"access_token": token, "token_type": "bearer"}
+
+
+@app.get("/me", response_model=CurrentUserResponse)
+def me(current_user: UserModel = Depends(get_current_user)):
+    # récupération user via token
+    return current_user
+
+
+# =========================
+# UNIT (SÉCURISÉ)
+# =========================
 
 @app.post("/create-unit")
-def create_unit_endpoint(unit_data: UnitCreate, db: Session = Depends(get_db)):
-    """Create a new unit"""
-    result = create_unit(unit_data, db)
-    return result
+def create_unit_endpoint(
+    unit_data: UnitCreate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_teacher)  # réservé teacher
+):
+    return create_unit(unit_data, current_user.id, db)
 
 
 @app.put("/unit/{unit_id}")
-def update_unit_endpoint(unit_id: int, update_data: UnitUpdate, db: Session = Depends(get_db)):
-    """Update an existing unit"""
-    result = update_unit(unit_id, update_data, db)
-    return result
+def update_unit_endpoint(
+    unit_id: int,
+    update_data: UnitUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_teacher)
+):
+    return update_unit(unit_id, update_data, current_user.id, db)
 
 
 @app.delete("/unit/{unit_id}")
-def delete_unit_endpoint(unit_id: int, db: Session = Depends(get_db)):
-    """Delete a unit and all its children (courses, exercises)."""
-    delete_unit(unit_id, db)
+def delete_unit_endpoint(
+    unit_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_teacher)
+):
+    delete_unit(unit_id, current_user.id, db)
     return None
 
 
-# Endpoints related to a course 
+# =========================
+# COURSE (SÉCURISÉ)
+# =========================
 
 @app.post("/create-course")
-def create_course_endpoint(course_data: CourseCreate, db: Session = Depends(get_db)):
-    """Create a new course within a unit."""
-    print(course_data)
-    result = create_course(course_data, db)
-    return result
-
-
-@app.delete("/course/{course_id}")
-def delete_course_endpoint(course_id: int, db: Session = Depends(get_db)):
-    """Delete a course and all its exercises."""
-    delete_course(course_id, db)
-    return None
+def create_course_endpoint(
+    course_data: CourseCreate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_teacher)
+):
+    return create_course(course_data, current_user.id, db)
 
 
 @app.put("/course/{course_id}")
-def update_course_endpoint(course_id: int, update_data: CourseUpdate, db: Session = Depends(get_db)):
-    """Update an existing course"""
-    result = update_course(course_id, update_data, db)
-    return result
+def update_course_endpoint(
+    course_id: int,
+    update_data: CourseUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_teacher)
+):
+    return update_course(course_id, update_data, current_user.id, db)
 
-# Endpoints teacher  exercise
-  
+
+@app.delete("/course/{course_id}")
+def delete_course_endpoint(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_teacher)
+):
+    delete_course(course_id, current_user.id, db)
+    return None
+
+
+# =========================
+# EXERCISE (SÉCURISÉ)
+# =========================
+
 @app.post("/exercises")
-def create_exercise_endpoint(exercise_data: ExerciseFullCreate, db : Session = Depends(get_db)):
-    """ Route call after the teacher use the button 'VALIDER'. """
-    print(exercise_data)
-    result = create_exercise(exercise_data, db)
-    return result
+def create_exercise_endpoint(
+    exercise_data: ExerciseFullCreate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_teacher)
+):
+    return create_exercise(exercise_data, db)
+
 
 @app.delete("/exercise/{exercise_id}")
-def delete_exercise_endpoint(exercise_id: int, db: Session = Depends(get_db)):
-    """Delete an exercise and all its components."""
-    delete_exercise(exercise_id, db)
+def delete_exercise_endpoint(
+    exercise_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_teacher)
+):
+    delete_exercise(exercise_id, current_user.id, db)
     return None
 
 
 @app.get("/update/exercise/{exercise_id}")
-def get_exercise_for_teacher_endpoint(exercise_id: int, db: Session = Depends(get_db)):
-    """Get full exercise with reconstructed files (markers included) for teacher editing."""
-    result = get_exercise_for_update(exercise_id, db)
-    return result
+def get_exercise_for_teacher_endpoint(
+    exercise_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_teacher)
+):
+    return get_exercise_for_update(exercise_id, db)
 
 
 @app.put("/exercise/{exercise_id}")
-def update_exercise_endpoint(exercise_data: Exercise, db: Session = Depends(get_db)):
-    """Full update of an exercise (replaces files, tests, hints)."""
-    print(exercise_data)
-    result = update_exercise(exercise_data, db)
-    return result
+def update_exercise_endpoint(
+    exercise_data: Exercise,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(require_teacher)
+):
+    return update_exercise(exercise_data, db)
 
 
-# Endpoint use for teacher testing  (Compile & Run)
+# =========================
+# TEACHER TEST (SÉCURISÉ)
+# =========================
 
 @app.post("/run_test")
-async def test_exercise_endpoint(request: TestRunRequest):
-    """Compile and run code with test arguments (used by teacher to test exercises)."""
-    result = await compile_and_run_logic(request.files, request.language, request.argv)
-    return result
+async def test_exercise_endpoint(
+    request: TestRunRequest,
+    current_user: UserModel = Depends(require_teacher)
+):
+    return await compile_and_run_logic(request.files, request.language, request.argv)
 
 
 @app.post("/compilation")
-async def compilation_teacher_code_endpoint(request: CompileRequest):
-    """Compile code without execution (used by teacher to check for errors)."""
-    print(request)
-    result = await compile_logic(request.files, request.language)
-    return result
+async def compilation_teacher_code_endpoint(
+    request: CompileRequest,
+    current_user: UserModel = Depends(require_teacher)
+):
+    return await compile_logic(request.files, request.language)
 
 
-
-
-
-# Endpoint for student 
+# =========================
+# STUDENT (SÉCURISÉ)
+# =========================
 
 @app.get("/student/unit/{unit_id}/course/{course_id}/exercise/{exercise_id}")
 def get_exercise_student_endpoint(
     unit_id: int,
     course_id: int,
     exercise_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)  # connecté obligatoire
 ):
-    """Get an exercise for a student (with TODO placeholders instead of solutions)."""
-    exercise = get_exercise_for_student(unit_id, course_id, exercise_id, db)
-    return exercise
+    return get_exercise_for_student(unit_id, course_id, exercise_id, db)
 
 
 @app.post("/student/unit/{unit_id}/course/{course_id}/exercise/{exercise_id}")
 async def test_student_code_endpoint(
     exercise_id: int,
     payload: StudentSubmissionPayload,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
 ):
-    """Submit student solution for testing and grading."""
-    results = await test_student_code(db, exercise_id, payload)
-    return results
+    # user_id vient du token, pas du frontend
+    return await test_student_code(db, exercise_id, payload, current_user.id)
 
 
-# Navigation Endpoints (Dashboard, unit page and side navigation panel in exercise-run)
+# =========================
+# NAVIGATION
+# =========================
 
 @app.get("/units")
-def get_all_units_summary(user_id: int, db: Session = Depends(get_db)):
-    """Get a summary of all units for the dashboard."""
-    results = get_all_units(user_id, db)
-    return results
+def get_all_units_summary(
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    return get_all_units(current_user.id, db)
 
 
 @app.get("/unit/{unit_id}/courses")
 def get_unit_courses_and_exercises(
     unit_id: int,
-    user_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
 ):
-    """Get the structure of a unit with all its courses and exercises."""
-    print("test")
-    results = get_unit_structure(unit_id, user_id, db)
-    return results
+    return get_unit_structure(unit_id, current_user.id, db)
+
 
 @app.get("/")
 def root():
-    return {"message": "Hello World Docker"}
+    return {"message": "Hello World"}

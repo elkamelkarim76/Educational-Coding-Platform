@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+
 import { CourseNav, CourseUpdatePayload } from '../../models/exercise.models';
 import { validateEntityForm } from '../../utils/utils';
 
@@ -14,12 +15,16 @@ export class CourseDisplay {
   @Input() courses: CourseNav[] = [];
   @Input() unitId!: number;
 
-  @Output() deleteCourseRequest = new EventEmitter<number>();
-  @Output() deleteExerciseRequest = new EventEmitter<{courseId: number, exerciseId: number}>();
-  @Output() updateCourseRequest = new EventEmitter<{courseId: number, payload: CourseUpdatePayload}>();
+  // sert à savoir si on affiche les boutons prof ou pas
+  @Input() isTeacher = false;
 
-  // Course edit state
+  @Output() deleteCourseRequest = new EventEmitter<number>();
+  @Output() deleteExerciseRequest = new EventEmitter<{ courseId: number, exerciseId: number }>();
+  @Output() updateCourseRequest = new EventEmitter<{ courseId: number, payload: CourseUpdatePayload }>();
+
+  // état du form modification cours
   editingCourseId: number | null = null;
+
   editedCourse = {
     name: '',
     description: '',
@@ -29,15 +34,13 @@ export class CourseDisplay {
 
   errorMessage = '';
 
-  onDeleteClick(courseId: number) {
-    // "confirm" function will open a pop up and "ask" a question to the user
+  onDeleteClick(courseId: number): void {
     if (confirm('Voulez-vous vraiment supprimer ce cours et tous ses exercices ?')) {
       this.deleteCourseRequest.emit(courseId);
     }
   }
 
-  onDeleteExerciseClick(courseId: number, exerciseId: number, event: Event) {
-    // Don' allow the click to propagate 
+  onDeleteExerciseClick(courseId: number, exerciseId: number, event: Event): void {
     event.preventDefault();
     event.stopPropagation();
 
@@ -46,11 +49,12 @@ export class CourseDisplay {
     }
   }
 
-  // Course Edit Methods
   startEditingCourse(course: CourseNav, event: Event): void {
     event.preventDefault();
     event.stopPropagation();
+
     this.editingCourseId = course.id;
+
     this.editedCourse = {
       name: course.name,
       description: course.description,
@@ -68,6 +72,7 @@ export class CourseDisplay {
     this.errorMessage = '';
 
     const validationError = validateEntityForm(this.editedCourse);
+
     if (validationError) {
       this.errorMessage = validationError;
       return;
@@ -77,6 +82,7 @@ export class CourseDisplay {
       courseId,
       payload: { ...this.editedCourse }
     });
+
     this.editingCourseId = null;
   }
 }

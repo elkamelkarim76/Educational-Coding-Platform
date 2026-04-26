@@ -1,8 +1,32 @@
 from pydantic import BaseModel, Field
 from typing import List
-from app.core.enums import Extension, Language, Visibility, TestStatus
+from app.core.enums import Extension, Language, Visibility, TestStatus, UserRole
+
+class RegisterRequest(BaseModel):
+    firstname: str
+    lastname: str
+    email: str
+    password: str = Field(..., min_length=8)
+    role: UserRole
 
 
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class CurrentUserResponse(BaseModel):
+    id: int
+    firstname: str
+    lastname: str
+    email: str
+    role: UserRole
+    
 # Exercise composition schemas
 
 class FileCreate(BaseModel):
@@ -97,7 +121,6 @@ class TestRunRequest(CompileRequest):
 # Student submission schemas
 
 class StudentSubmissionPayload(BaseModel):
-    user_id: int
     language: Language
     files: List[File]
 
@@ -137,7 +160,6 @@ class CourseCreate(BaseModel):
   difficulty: int = Field(..., ge=1, le=5)
   visibility: Visibility
   unit_id: int
-  author_id: int
 
 
 class UnitCreate(BaseModel):
@@ -145,7 +167,6 @@ class UnitCreate(BaseModel):
     description: str
     difficulty: int = Field(..., ge=1, le=5)
     visibility: Visibility
-    author_id: int
 
 # Update schemas (partial updates)
 
