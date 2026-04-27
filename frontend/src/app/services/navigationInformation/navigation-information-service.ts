@@ -2,68 +2,62 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
+
 import { UnitSummary, UnitNav } from '../../models/exercise.models';
 import { environment } from '../../../environments/environment.development';
-
 
 @Injectable({
   providedIn: 'root',
 })
 export class NavigationInformationService {
 
-  // Stores the ID and structure of the last loaded unit to avoid redundant API calls.
+  // cache simple pour éviter de refaire les mêmes appels API
   private UnitId: number | null = null;
   private Structure: UnitNav | null = null;
   private DashboardList: UnitSummary[] | null = null;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
-  // Ask for the units a student can do. Use for the dashbord
+  // récupère les unités depuis le backend
+  // le backend sait qui est connecté grâce au token JWT
   getDashboardUnits(): Observable<UnitSummary[]> {
-    // Check "cache"
     if (this.DashboardList) {
-      return of(this.DashboardList); // of convert the respond to an observable
+      return of(this.DashboardList);
     }
 
-    // Call backend
-    return this.http.get<UnitSummary[]>(`${environment.apiUrl}units?user_id=1`).pipe(
+    return this.http.get<UnitSummary[]>(`${environment.apiUrl}units`).pipe(
       tap((data) => {
-        this.DashboardList = data; // Store in memory
+        this.DashboardList = data;
       })
     );
   }
 
-
-  // Ask for the structure of an unit. Use for the sidebar in an exercise and in page course
+  // récupère les cours + exercices d'une unité
+  // plus besoin de user_id dans l'URL, le token suffit
   getUnitStructure(unitId: number): Observable<UnitNav> {
-    
-    // Check "cache"
-    // If we have data in memory and it matches the requested ID
-    // Good when a student is in the exercise 1 of the course 1 and go to the exercise 2 of the same course
-    // No need to call the backend again because the information are the same
     if (this.Structure && this.UnitId === unitId) {
-      console.log("Data from cache")
-      return of(this.Structure); 
+      console.log('Data from cache');
+      return of(this.Structure);
     }
 
-    // Call backend                                                           // Temporary query parameters
-    return this.http.get<UnitNav>(`${environment.apiUrl}unit/${unitId}/courses?user_id=1`).pipe(
-      // tap intercept the respond of the back before it reaches the component.
+    return this.http.get<UnitNav>(`${environment.apiUrl}unit/${unitId}/courses`).pipe(
       tap((data) => {
         this.UnitId = unitId;
         this.Structure = data;
       })
     );
   }
+
+  // vide seulement le cache de l'unité
   clearUnitCache(): void {
     this.UnitId = null;
     this.Structure = null;
   }
+
+  // vide tout le cache après ajout/suppression/modif
   clearAllCache(): void {
     this.UnitId = null;
     this.Structure = null;
     this.DashboardList = null;
   }
-
-
 }

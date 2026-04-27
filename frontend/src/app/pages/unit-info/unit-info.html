@@ -1,7 +1,7 @@
 <div class="min-h-screen w-full bg-gray-800 p-8 text-white">
 
   @if (isLoading) {
-     <div class="flex flex-col items-center justify-center mt-20 animate-pulse space-y-4">
+    <div class="flex flex-col items-center justify-center mt-20 animate-pulse space-y-4">
       <div class="h-32 w-full max-w-4xl bg-gray-800 rounded-2xl"></div>
       <div class="h-20 w-full max-w-4xl bg-gray-800 rounded-xl"></div>
     </div>
@@ -28,17 +28,22 @@
 
               <div class="h-4 w-px bg-gray-300"></div>
 
-              <span class="text-gray-300 font-medium flex items-center gap-2">Niveau {{ unitData.difficulty }}</span>
+              <span class="text-gray-300 font-medium flex items-center gap-2">
+                Niveau {{ unitData.difficulty }}
+              </span>
 
-              <div class="h-4 w-px bg-gray-300"></div>
+              <!-- bouton modifier module : prof uniquement -->
+              @if (isTeacher) {
+                <div class="h-4 w-px bg-gray-300"></div>
 
-              <button (click)="startEditingUnit()"
-                      class="p-2 rounded text-gray-400 hover:text-white transition-colors cursor-pointer"
-                      title="Modifier le module">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                </svg>
-              </button>
+                <button (click)="startEditingUnit()"
+                        class="p-2 rounded text-gray-400 hover:text-white transition-colors cursor-pointer"
+                        title="Modifier le module">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                  </svg>
+                </button>
+              }
             </div>
 
           </div>
@@ -49,23 +54,23 @@
         } @else {
           <div class="flex flex-col md:flex-row md:items-start gap-4 p-5 border-b border-gray-300">
             <input type="text" [(ngModel)]="editedUnit.name"
-                      placeholder="Nom de l'unité..." 
-                      class="bg-transparent text-lg font-bold text-white placeholder-gray-300 focus:outline-none border-b border-transparent focus:border-white w-full md:w-1/4"
-                      autoFocus>
+                   placeholder="Nom de l'unité..." 
+                   class="bg-transparent text-lg font-bold text-white placeholder-gray-300 focus:outline-none border-b border-transparent focus:border-white w-full md:w-1/4"
+                   autoFocus>
             
             <div class="hidden md:block h-8 w-px bg-gray-300 mt-1"></div>
 
             <textarea [(ngModel)]="editedUnit.description"
-                placeholder="Description de l'unité..." 
+                      placeholder="Description de l'unité..." 
                       rows="2"
                       class="flex-1 bg-transparent text-sm text-gray-300 focus:outline-none border border-transparent focus:border-gray-300 rounded p-1 resize-none"></textarea>
           </div>
 
           @if (errorMessageUnit) {
-              <div class="px-5 py-2 text-red-400 text-sm font-bold bg-red-900/20 border-t border-red-900/50 flex items-center gap-2">
-                   {{ errorMessageUnit }}
-              </div>
-        }
+            <div class="px-5 py-2 text-red-400 text-sm font-bold bg-red-900/20 border-t border-red-900/50 flex items-center gap-2">
+              {{ errorMessageUnit }}
+            </div>
+          }
 
           <div class="p-3 bg-gray-800 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -100,77 +105,77 @@
       <app-course-display
         [courses]="unitData.courses"
         [unitId]="unitData.id"
+        [isTeacher]="isTeacher"
         (deleteCourseRequest)="handleDeleteCourse($event)"
         (deleteExerciseRequest)="handleDeleteExercise($event)"
         (updateCourseRequest)="handleUpdateCourse($event)">
       </app-course-display>
 
-      @if (!isAddingCourse) {
+      <!-- bouton ajouter cours : prof uniquement -->
+      @if (isTeacher && !isAddingCourse) {
         <button (click)="startAddingCourse()" 
                 class="w-full py-4 mt-6 rounded-xl border-2 border-dashed border-gray-300 text-gray-300 hover:bg-gray-700/50 flex items-center justify-center gap-2 font-bold group cursor-pointer">
-            
-            <span class="text-xl ">+</span> 
-            <span>Ajouter un cours</span>
-        
+          <span class="text-xl">+</span> 
+          <span>Ajouter un cours</span>
         </button>
       }
 
-      @else {
-        
-        <div class="bg-gray-900 rounded-xl border border-gray-300 overflow-hidden shadow-2xl  mt-6">
+      <!-- formulaire ajout cours : prof uniquement -->
+      @else if (isTeacher) {
+        <div class="bg-gray-900 rounded-xl border border-gray-300 overflow-hidden shadow-2xl mt-6">
             
-            <div class="flex flex-col md:flex-row md:items-start gap-4 p-5 border-b border-gray-300">
+          <div class="flex flex-col md:flex-row md:items-start gap-4 p-5 border-b border-gray-300">
                 
-                <input type="text" [(ngModel)]="newCourse.name" 
-                       placeholder="Nom du cours..." 
-                       class="bg-transparent text-lg font-bold text-white placeholder-gray-300 focus:outline-none border-b border-transparent focus:border-white w-full md:w-1/4"
-                       autoFocus>
+            <input type="text" [(ngModel)]="newCourse.name" 
+                   placeholder="Nom du cours..." 
+                   class="bg-transparent text-lg font-bold text-white placeholder-gray-300 focus:outline-none border-b border-transparent focus:border-white w-full md:w-1/4"
+                   autoFocus>
 
-                <div class="hidden md:block h-8 w-px bg-gray-300 mt-1"></div>
+            <div class="hidden md:block h-8 w-px bg-gray-300 mt-1"></div>
 
-                <textarea [(ngModel)]="newCourse.description" 
-                          placeholder="Description du cours..." 
-                          rows="2"
-                          class="flex-1 bg-transparent text-sm text-gray-300 focus:outline-none border border-transparent focus:border-gray-300 rounded p-1 resize-none"></textarea>
+            <textarea [(ngModel)]="newCourse.description" 
+                      placeholder="Description du cours..." 
+                      rows="2"
+                      class="flex-1 bg-transparent text-sm text-gray-300 focus:outline-none border border-transparent focus:border-gray-300 rounded p-1 resize-none"></textarea>
 
+          </div>
+
+          @if (errorMessage) {
+            <div class="px-5 py-2 text-red-400 text-sm font-bold bg-red-900/20 border-t border-red-900/50 flex items-center gap-2">
+              {{ errorMessage }}
             </div>
+          }
 
-            @if (errorMessage) {
-              <div class="px-5 py-2 text-red-400 text-sm font-bold bg-red-900/20 border-t border-red-900/50 flex items-center gap-2">
-                   {{ errorMessage }}
-              </div>
-    }
+          <div class="p-3 bg-gray-800 flex items-center justify-between gap-3">
 
-            <div class="p-3 bg-gray-800 flex  items-center justify-between gap-3">
-
-                <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2">
                     
-                    <div class="flex items-center gap-2 bg-gray-900 border border-gray-300 rounded px-2 py-1">
-                        <span class="text-xs font-medium text-gray-300 whitespace-nowrap">Niv</span>
-                        <input type="number" min="1" max="5" [(ngModel)]="newCourse.difficulty"
-                               class="bg-transparent text-white w-8 text-center focus:outline-none font-bold text-xs">
-                    </div>
+              <div class="flex items-center gap-2 bg-gray-900 border border-gray-300 rounded px-2 py-1">
+                <span class="text-xs font-medium text-gray-300 whitespace-nowrap">Niv</span>
+                <input type="number" min="1" max="5" [(ngModel)]="newCourse.difficulty"
+                       class="bg-transparent text-white w-8 text-center focus:outline-none font-bold text-xs">
+              </div>
 
-                    <select [(ngModel)]="newCourse.visibility" 
-                            class="bg-gray-900 border border-gray-300 text-gray-300 text-xs rounded px-2 py-1 focus:outline-none cursor-pointer">
-                        <option value="public">Public</option>
-                        <option value="private">Privé</option>
-                    </select>
-                </div>
-
-                <div class="flex items-center gap-2">
-                  <button (click)="cancelAdding()" 
-                          class="px-4 py-1.5 rounded text-gray-300  text-sm font-medium cursor-pointer">
-                      Annuler
-                  </button>
-
-                  <button (click)="submitCourse()" 
-                          [disabled]="isCreating"
-                          class="px-4 py-1.5 bg-white text-gray-900 rounded font-bold text-sm disabled:opacity-50 cursor-pointer">
-                      {{ isCreating ? 'Création...' : 'Valider' }}
-                  </button>
-                </div>
+              <select [(ngModel)]="newCourse.visibility" 
+                      class="bg-gray-900 border border-gray-300 text-gray-300 text-xs rounded px-2 py-1 focus:outline-none cursor-pointer">
+                <option value="public">Public</option>
+                <option value="private">Privé</option>
+              </select>
             </div>
+
+            <div class="flex items-center gap-2">
+              <button (click)="cancelAdding()" 
+                      class="px-4 py-1.5 rounded text-gray-300 text-sm font-medium cursor-pointer">
+                Annuler
+              </button>
+
+              <button (click)="submitCourse()" 
+                      [disabled]="isCreating"
+                      class="px-4 py-1.5 bg-white text-gray-900 rounded font-bold text-sm disabled:opacity-50 cursor-pointer">
+                {{ isCreating ? 'Création...' : 'Valider' }}
+              </button>
+            </div>
+          </div>
 
         </div>
       }

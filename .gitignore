@@ -1,2 +1,5 @@
 .vscode/*
+.history/
+backend/database.db
+frontend.zip
 

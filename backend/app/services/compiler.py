@@ -13,17 +13,16 @@ from app.schemas.schemas import File, Language
 from app.utils.syntax_code import COMPILER_CONFIG
 
 
-
 def get_filename_on_disk(file: File, config: dict) -> str:
     """
     Determine the filename to write on disk.
-    If is_main is True, the file is renamed to the language's main file name
+    If is_main is True, the file is renamed to the language's main file name.
     """
     base_name = config["main_name"] if file.is_main else file.name
 
-    # Handle case where name already includes extension
     if base_name.endswith(f".{file.extension}"):
         return base_name
+
     return f"{base_name}.{file.extension}"
 
 
@@ -43,10 +42,12 @@ def write_files_to_folder(files: list[File], folder_path: str, config: dict) -> 
                 main_found = True
 
             file_path = os.path.join(folder_path, filename)
+
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(file.content)
 
         print(f"Files written in folder {folder_path}")
+
     except Exception as e:
         print(f"Writing error: {e}")
         raise e
@@ -55,20 +56,17 @@ def write_files_to_folder(files: list[File], folder_path: str, config: dict) -> 
 def build_compilation_command(config: dict, files: list[File]) -> list[str]:
     """
     Generate the compilation command by replacing placeholders.
-    Replaces {input_files} placeholder with actual source file names,
-    filtering to include only files with the target extension.
+    Replaces {input_files} with actual source file names.
     """
     cmd = []
     target_extension = config["extension"]
 
     for arg in config["compiler_cmd"]:
         if arg == "{input_files}":
-            # Add only files with the correct extension
             for f in files:
                 if f.extension == target_extension:
                     cmd.append(get_filename_on_disk(f, config))
         else:
-            # Keep standard arguments (e.g., "-o", "app")
             cmd.append(arg)
 
     return cmd
@@ -76,7 +74,7 @@ def build_compilation_command(config: dict, files: list[File]) -> list[str]:
 
 def run_compilation(config: dict, files: list[File], tmp_dir: str) -> dict:
     """
-    Execute the compilation command in the tmp_dir using subprocess.
+    Execute the compilation command in the tmp_dir.
     """
     cmd = build_compilation_command(config, files)
 
@@ -84,22 +82,33 @@ def run_compilation(config: dict, files: list[File], tmp_dir: str) -> dict:
 
     try:
         result = subprocess.run(
-            cmd, # args we will execute ["gcc", "file1.c", "-o", "app"] -> gcc file1.c -o app
+            cmd,
             cwd=tmp_dir,
             capture_output=True,
             text=True,
-            #timeout=20
+            timeout=10  # sécurité : évite une compilation bloquée
         )
 
-        is_success = (result.returncode == 0)
+        is_success = result.returncode == 0
 
         return {
             "status": is_success,
             "message": "Compilation successful" if is_success else "Compilation failed",
             "data": {
                 "stdout": result.stdout,
-                "stderr": result.stderr, # Error and warnings
+                "stderr": result.stderr,
                 "exit_code": result.returncode
+            }
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "status": False,
+            "message": "Compilation timeout",
+            "data": {
+                "stdout": "",
+                "stderr": "Compilation stopped: time limit exceeded.",
+                "exit_code": -1
             }
         }
 
@@ -119,12 +128,9 @@ def run_execution(config: dict, tmp_dir: str, argv: str) -> dict:
     """
     Execute the compiled program with arguments.
     """
-    # Copy to avoid modifying the global config
     cmd = config["run_cmd"].copy()
 
     if argv:
-        # extends : add all the content of the second list on the first list [1,2,3] and not [1, [2,3]]
-        # split : parse the string "5 4 8" into a list of char ["5", "4", "8"]
         cmd.extend(argv.split())
 
     print("execution:", cmd)
@@ -135,10 +141,10 @@ def run_execution(config: dict, tmp_dir: str, argv: str) -> dict:
             cwd=tmp_dir,
             capture_output=True,
             text=True,
-            #timeout=2
+            timeout=3  # sécurité : évite les boucles infinies
         )
 
-        is_success = (result.returncode == 0)
+        is_success = result.returncode == 0
 
         return {
             "status": is_success,
@@ -147,6 +153,17 @@ def run_execution(config: dict, tmp_dir: str, argv: str) -> dict:
                 "stdout": result.stdout,
                 "stderr": result.stderr,
                 "exit_code": result.returncode
+            }
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "status": False,
+            "message": "Execution timeout",
+            "data": {
+                "stdout": "",
+                "stderr": "Execution stopped: time limit exceeded.",
+                "exit_code": -1
             }
         }
 
@@ -168,13 +185,11 @@ def prepare_and_compile(files: list[File], language: Language, tmp_dir: str) -> 
     """
     config = COMPILER_CONFIG.get(language)
 
-    # Write files in tmp_dir
     try:
         write_files_to_folder(files, tmp_dir, config)
     except Exception as e:
         return {"status": False, "message": str(e)}, {}
 
-    # Compile
     compile_result = run_compilation(config, files, tmp_dir)
 
     return compile_result, config
@@ -182,8 +197,8 @@ def prepare_and_compile(files: list[File], language: Language, tmp_dir: str) -> 
 
 async def compile_logic(files: list[File], language: Language) -> dict:
     """
-    Compile code without execution (for syntax checking).
-    Used by teachers to check their code for compilation errors.
+    Compile code without execution.
+    Used by teachers to check their code.
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         compile_result, _ = prepare_and_compile(files, language, tmp_dir)
@@ -197,7 +212,7 @@ async def compile_and_run_logic(files: list[File], language: Language, argv: str
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         compile_result, config = prepare_and_compile(files, language, tmp_dir)
-        # Early return if compilation fails
+
         if not compile_result["status"]:
             return compile_result
 
@@ -208,9 +223,7 @@ async def compile_and_run_logic(files: list[File], language: Language, argv: str
 async def compile_and_run_logics(files: list[File], language: Language, argvs: list[str]) -> dict | list[dict]:
     """
     Compile once and execute with multiple test cases.
-
-    Used for student submissions where the same code is tested
-    against multiple test cases.
+    Used for student submissions.
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         compile_result, config = prepare_and_compile(files, language, tmp_dir)
@@ -219,6 +232,7 @@ async def compile_and_run_logics(files: list[File], language: Language, argvs: l
             return compile_result
 
         exec_results = []
+
         for argv in argvs:
             exec_results.append(run_execution(config, tmp_dir, argv))
 

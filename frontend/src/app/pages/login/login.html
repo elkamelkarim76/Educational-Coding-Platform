@@ -1,7 +1,7 @@
 <div class="min-h-screen flex items-center justify-center bg-gray-800">
     <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
         <h2 class="text-2xl font-semibold text-center text-gray-800 mb-6">Connexion</h2>
-        <form class="space-y-5"> <!--ngSubmit evite que le formulaire recharge la page et execute la fonction onLogin-->
+        <form class="space-y-5" (ngSubmit)="onLogin()">
             
             <div class="form-group">
                 <label for="email" class=" block text-gray-800 font-medium mb-1">Email</label>

@@ -18,10 +18,15 @@ from app.schemas.schemas import (
 
 # Course methods
 
-def create_course(course_data: CourseCreate, db: Session) -> CourseNav:
+def create_course(course_data: CourseCreate, author_id: int, db: Session) -> CourseNav:
     unit = db.query(UnitModel).filter(UnitModel.id == course_data.unit_id).first()
     if not unit:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unit not found")
+    if unit.author_id != author_id:
+        raise HTTPException(
+           status_code=status.HTTP_403_FORBIDDEN,
+           detail="You cannot add a course to another teacher's unit"
+    )
 
     # Find max position and increment
     max_position = db.query(func.max(CourseModel.position))\
@@ -56,7 +61,7 @@ def create_course(course_data: CourseCreate, db: Session) -> CourseNav:
     )
 
 
-def delete_course(course_id: int, db: Session) -> None:
+def delete_course(course_id: int, author_id: int, db: Session) -> None:
     """
     Delete a course and all its exercises.
     """
@@ -64,6 +69,13 @@ def delete_course(course_id: int, db: Session) -> None:
 
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    unit = db.query(UnitModel).filter(UnitModel.id == course.unit_id).first()
+
+    if unit.author_id != author_id:
+        raise HTTPException(
+           status_code=status.HTTP_403_FORBIDDEN,
+           detail="You cannot delete another teacher's course"
+    )
 
     db.delete(course)
     db.commit()
@@ -71,7 +83,7 @@ def delete_course(course_id: int, db: Session) -> None:
     return None
 
 
-def update_course(course_id: int, update_data: CourseUpdate, db: Session) -> CourseNav:
+def update_course(course_id: int, update_data: CourseUpdate, author_id: int, db: Session) -> CourseNav:
     """
     Update an existing course (partial update supported).
     """
@@ -79,6 +91,13 @@ def update_course(course_id: int, update_data: CourseUpdate, db: Session) -> Cou
 
     if not course:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+    unit = db.query(UnitModel).filter(UnitModel.id == course.unit_id).first()
+
+    if unit.author_id != author_id:
+        raise HTTPException(
+           status_code=status.HTTP_403_FORBIDDEN,
+           detail="You cannot update another teacher's course"
+    )
 
     # Only update provided fields
     update_dict = update_data.model_dump(exclude_unset=True)
@@ -90,7 +109,6 @@ def update_course(course_id: int, update_data: CourseUpdate, db: Session) -> Cou
     db.refresh(course)
 
     # Get unit for author_id
-    unit = db.query(UnitModel).filter(UnitModel.id == course.unit_id).first()
 
     return CourseNav(
         id=course.id,
@@ -124,13 +142,13 @@ def delete_exercise(exercise_id: int, db: Session) -> None:
 
 # Unit methods
 
-def create_unit(unit_data: UnitCreate, db: Session) -> UnitSummary:
+def create_unit(unit_data: UnitCreate, author_id: int, db: Session) -> UnitSummary:
     new_unit_db = UnitModel(
         name=unit_data.name,
         description=unit_data.description,
         difficulty=unit_data.difficulty,
         visibility=unit_data.visibility,
-        author_id=unit_data.author_id
+        author_id=author_id
     )
 
     db.add(new_unit_db)
@@ -146,8 +164,7 @@ def create_unit(unit_data: UnitCreate, db: Session) -> UnitSummary:
         author_id=new_unit_db.author_id
     )
 
-
-def update_unit(unit_id: int, update_data: UnitUpdate, db: Session) -> UnitSummary:
+def update_unit(unit_id: int, update_data: UnitUpdate, author_id: int, db: Session) -> UnitSummary:
     """
     Update an existing unit (partial update supported).
     """
@@ -155,7 +172,11 @@ def update_unit(unit_id: int, update_data: UnitUpdate, db: Session) -> UnitSumma
 
     if not unit:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unit not found")
-
+    if unit.author_id != author_id:
+        raise HTTPException(
+           status_code=status.HTTP_403_FORBIDDEN,
+           detail="You cannot update another teacher's unit"
+    )
     # Only update provided fields
     update_dict = update_data.model_dump(exclude_unset=True)
     for field, value in update_dict.items():
@@ -175,7 +196,7 @@ def update_unit(unit_id: int, update_data: UnitUpdate, db: Session) -> UnitSumma
     )
 
 
-def delete_unit(unit_id: int, db: Session) -> None:
+def delete_unit(unit_id: int, author_id: int, db: Session) -> None:
     """
     Delete a unit and all its children.
     Cascade delete removes all courses, exercises, and related data.
@@ -184,7 +205,11 @@ def delete_unit(unit_id: int, db: Session) -> None:
 
     if not unit:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unit not found")
-
+    if unit.author_id != author_id:
+        raise HTTPException(
+           status_code=status.HTTP_403_FORBIDDEN,
+           detail="You cannot delete another teacher's unit"
+    )
     db.delete(unit)
     db.commit()
 
