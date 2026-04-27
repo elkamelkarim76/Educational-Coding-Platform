@@ -1,0 +1,128 @@
+<div class="analytics-container">
+    <div class="header">
+        <div class="title-section">
+            <h1>Tableau de bord analytique</h1>
+            <p>Suivi de la progression — Plateforme TAI</p>
+        </div>
+        <div class="controls">
+            <div class="filter-group">
+                <label>Langage :</label>
+                <select [(ngModel)]="selectedLang" (change)="applyFilter()">
+                    <option value="all">Tous</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="c">C</option>
+                </select>
+            </div>
+            <button class="back-btn" routerLink="/dashboard">
+                <span class="material-icons">arrow_back</span>
+                Tableau de bord
+            </button>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">ÉTUDIANTS ACTIFS</span>
+            <div class="stat-value">{{ totalStudents }}</div>
+            <div class="stat-change positive">+6 cette semaine</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">SOUMISSIONS</span>
+            <div class="stat-value">{{ totalSubmissions }}</div>
+            <div class="stat-sub">total cumulé</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">TAUX DE RÉUSSITE</span>
+            <div class="stat-value success">{{ successRate }}%</div>
+            <div class="stat-sub">sur les soumissions</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">MOY. TENTATIVES</span>
+            <div class="stat-value">{{ avgAttempts }}</div>
+            <div class="stat-sub">par exercice</div>
+        </div>
+    </div>
+
+    <div class="main-charts">
+        <div class="chart-container wide">
+            <div class="chart-header">
+                <h3>SOUMISSIONS / JOUR — 30 DERNIERS JOURS</h3>
+                <div class="legend">
+                    <span class="dot success"></span> Succès
+                    <span class="dot danger"></span> Échecs
+                </div>
+            </div>
+            <div class="chart-placeholder">
+                <canvas #chartLine></canvas>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3>RÉPARTITION PAR LANGAGE</h3>
+            </div>
+            <div class="chart-placeholder">
+                <canvas #chartDonut></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="details-grid">
+        <div class="detail-card">
+            <h3>TOP 5 — EXERCICES DIFFICILES</h3>
+            <div class="chart-placeholder" style="height: 200px;">
+                <canvas #chartBar></canvas>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <h3>INDICES DÉBLOQUÉS</h3>
+            <div class="exercise-list">
+                @for (ex of getHardest(); track ex.id) {
+                    <div class="exercise-item">
+                        <span class="ex-name">{{ ex.name }}</span>
+                        <div class="hint-bar-wrapper">
+                            <div class="hint-bar"
+                                 [style.width.%]="getMaxHints() > 0 ? (ex.hints / getMaxHints()) * 100 : 0"
+                                 [style.background-color]="getLangColor(ex.lang)">
+                            </div>
+                        </div>
+                        <span class="ex-rate">{{ ex.hints }}</span>
+                    </div>
+                } @empty {
+                    <p class="empty-msg">Aucune donnée disponible</p>
+                }
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <h3>UNITÉS</h3>
+            <div class="unit-list">
+                @if (filteredExercises.length > 0) {
+                    @for (lang of getLangStats(); track lang.lang) {
+                        <div class="unit-card">
+                            <div class="unit-header">
+                                <span class="unit-name">{{ lang.label }}</span>
+                                <span class="unit-completion">{{ lang.count }} soumissions</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill"
+                                     [style.width.%]="totalSubmissions > 0 ? (lang.count / totalSubmissions) * 100 : 0"
+                                     [style.background-color]="lang.color">
+                                </div>
+                            </div>
+                        </div>
+                    }
+                } @else {
+                    <div class="loading-placeholder">
+                        <p>Chargement des unités...</p>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
+/// <reference types="jest" />
+
 import { CourseDisplay } from './course-display';
 
 describe('CourseDisplay', () => {
